@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<meta name="theme-color" content="#173f3a" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="部屋タイマー" />
+<link rel="icon" href="data:," />
+<title>部屋タイマー（ホーム画面用）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#eef1ee;
+    --bg2:#e3e9e4;
+    --card:#ffffff;
+    --card2:#f4f7f4;
+    --ink:#17211d;
+    --ink2:#4b5a52;
+    --ink3:#7c8a81;
+    --line:#d3ddd5;
+    --teal:#0f766e;
+    --teal-dark:#173f3a;
+    --teal-soft:#e0f2ee;
+    --amber:#b45309;
+    --amber-bg:#fef3c7;
+    --amber-line:#f59e0b;
+    --red:#b91c1c;
+    --red-bg:#fee2e2;
+    --red-line:#ef4444;
+    --btn:#e8ede9;
+    --btn-on:#173f3a;
+    --btn-on-ink:#ffffff;
+    --shadow:0 1px 2px rgba(20,40,32,.06),0 8px 24px rgba(20,40,32,.06);
+    --radius:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#101613;
+      --bg2:#0c100e;
+      --card:#1a211d;
+      --card2:#212a25;
+      --ink:#eef4f0;
+      --ink2:#b7c4bb;
+      --ink3:#84958a;
+      --line:#2e3a33;
+      --teal:#2dd4bf;
+      --teal-dark:#5eead4;
+      --teal-soft:#12332e;
+      --amber:#fbbf24;
+      --amber-bg:#3a2c07;
+      --amber-line:#d97706;
+      --red:#fca5a5;
+      --red-bg:#3d1212;
+      --red-line:#dc2626;
+      --btn:#27332c;
+      --btn-on:#0f766e;
+      --btn-on-ink:#ffffff;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+    }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    font-family:"Noto Sans JP",-apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;
+    background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
+    color:var(--ink);
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+  button,[role="button"],select,summary{ min-height:2.25rem; }
+  button{ font-family:inherit; cursor:pointer; }
+  .mono{ font-family:"Roboto Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums; }
+
+  /* ===== Top bar ===== */
+  .topbar{
+    position:sticky; top:0; z-index:20;
+    background:var(--teal-dark);
+    color:#fff;
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px)*0);
+    box-shadow:0 4px 18px rgba(10,30,25,.25);
+  }
+  @media (prefers-color-scheme: dark){ .topbar{ background:#0b2925; } }
+  .topbar-in{
+    max-width:1240px; margin:0 auto;
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .clock-wrap{ display:flex; align-items:baseline; gap:10px; margin-right:auto; }
+  .clock-label{ font-size:12px; font-weight:700; letter-spacing:.08em; opacity:.75; }
+  .clock{ font-size:34px; font-weight:700; line-height:1; letter-spacing:.02em; }
+  .clock-date{ font-size:13px; opacity:.85; font-weight:500; }
+  .top-stats{ display:flex; gap:8px; flex-wrap:wrap; }
+  .stat{
+    background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:999px;
+    padding:6px 12px;
+    font-size:13px; font-weight:700;
+    display:flex; align-items:center; gap:6px;
+    min-height:36px;
+  }
+  .stat b{ font-size:16px; }
+  .stat.alert{ background:#b91c1c; border-color:#ef4444; }
+  .stat.callstat{ background:#92400e; border-color:#f59e0b; }
+  .sound-btn{
+    background:rgba(255,255,255,.14); color:#fff;
+    border:1px solid rgba(255,255,255,.25);
+    border-radius:999px; padding:6px 14px;
+    font-size:13px; font-weight:700;
+    display:flex; align-items:center; gap:6px;
+  }
+  .sound-btn[aria-pressed="false"]{ opacity:.55; }
+
+  /* ===== Alert banner ===== */
+  .alertbar{
+    max-width:1240px; margin:14px auto 0; padding:0 16px;
+    display:none;
+  }
+  .alertbar.show{ display:block; }
+  .alertbar-in{
+    border-radius:14px; padding:12px 16px;
+    font-weight:900; font-size:16px;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .alertbar.call .alertbar-in{ background:var(--amber-bg); color:var(--amber); border:2px solid var(--amber-line); }
+  .alertbar.done .alertbar-in{ background:var(--red-bg); color:var(--red); border:2px solid var(--red-line); animation:blinkBg 1s steps(2,start) infinite; }
+  @keyframes blinkBg{ 50%{ filter:brightness(1.12); } }
+
+  main{ max-width:1240px; margin:0 auto; padding:18px 16px 0; }
+  .lead{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .lead h1{ font-size:22px; font-weight:900; margin:0; letter-spacing:.01em; }
+  .lead p{ margin:4px 0 0; font-size:13.5px; color:var(--ink2); line-height:1.6; }
+  .legend{ display:flex; gap:8px; flex-wrap:wrap; font-size:12px; font-weight:700; color:var(--ink2); }
+  .legend span{ display:inline-flex; align-items:center; gap:5px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:5px 10px; min-height:32px; }
+  .dot{ width:10px; height:10px; border-radius:50%; flex:none; }
+  .dot.free{ background:#9fb3a7; } .dot.run{ background:var(--teal); } .dot.call{ background:var(--amber-line); } .dot.done{ background:var(--red-line); }
+
+  /* ===== Grid ===== */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+  }
+  @media (max-width:1020px){ .grid{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:560px){ .grid{ grid-template-columns:1fr; } .clock{ font-size:28px; } }
+
+  .room{
+    background:var(--card);
+    border:2px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:16px;
+    display:flex; flex-direction:column; gap:12px;
+    position:relative; overflow:hidden;
+  }
+  .room.is-running{ border-color:var(--teal); }
+  .room.is-call{ border-color:var(--amber-line); background:var(--amber-bg); animation:callPulse 1.1s ease-in-out infinite; }
+  .room.is-done{ border-color:var(--red-line); background:var(--red-bg); animation:donePulse .8s steps(2,start) infinite; }
+  @keyframes callPulse{ 0%,100%{ box-shadow:var(--shadow);} 50%{ box-shadow:0 0 0 5px rgba(245,158,11,.35);} }
+  @keyframes donePulse{ 0%,100%{ box-shadow:var(--shadow);} 50%{ box-shadow:0 0 0 6px rgba(239,68,68,.4);} }
+  @media (prefers-reduced-motion: reduce){
+    .room.is-call,.room.is-done,.alertbar.done .alertbar-in{ animation:none; }
+  }
+
+  .room-head{ display:flex; align-items:center; gap:10px; }
+  .room-no{
+    width:46px; height:46px; flex:none;
+    border-radius:13px;
+    background:var(--teal-dark); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:900; font-size:21px;
+  }
+  @media (prefers-color-scheme: dark){ .room-no{ background:#0f766e; } }
+  .room.is-call .room-no{ background:var(--amber); }
+  .room.is-done .room-no{ background:var(--red); }
+  .room-title{ font-size:17px; font-weight:900; line-height:1.2; }
+  .room-status{ font-size:12.5px; font-weight:700; color:var(--ink2); margin-top:2px; }
+  .room.is-call .room-status{ color:var(--amber); }
+  .room.is-done .room-status{ color:var(--red); }
+  .head-badge{
+    margin-left:auto; flex:none;
+    font-size:12px; font-weight:900;
+    border-radius:999px; padding:5px 10px;
+    background:var(--card2); color:var(--ink2); border:1px solid var(--line);
+  }
+  .room.is-running .head-badge{ background:var(--teal-soft); color:var(--teal); border-color:transparent; }
+  .room.is-call .head-badge{ background:var(--amber); color:#fff; border-color:transparent; }
+  .room.is-done .head-badge{ background:var(--red); color:#fff; border-color:transparent; }
+
+  /* idle config */
+  .field-label{ font-size:12.5px; font-weight:900; color:var(--ink2); letter-spacing:.04em; margin-bottom:6px; display:flex; justify-content:space-between; align-items:baseline; }
+  .field-label .val{ color:var(--teal); font-size:13px; }
+  .seg{ display:flex; flex-wrap:wrap; gap:6px; }
+  .seg button{
+    flex:1 1 0; min-width:40px;
+    border:1.5px solid var(--line);
+    background:var(--btn); color:var(--ink);
+    border-radius:10px;
+    font-size:15px; font-weight:700;
+    padding:7px 4px;
+  }
+  .seg button small{ display:block; font-size:10px; font-weight:500; color:var(--ink3); line-height:1.2; }
+  .seg button.on{ background:var(--btn-on); color:var(--btn-on-ink); border-color:var(--btn-on); }
+  .seg button.on small{ color:rgba(255,255,255,.7); }
+  .seg.callseg button{ font-size:14px; }
+  .idle-total{
+    background:var(--card2); border:1px dashed var(--line); border-radius:10px;
+    padding:9px 12px; font-size:13px; color:var(--ink2); line-height:1.55;
+  }
+  .idle-total b{ color:var(--ink); }
+  .start-btn{
+    width:100%;
+    background:var(--teal); color:#fff;
+    border:none; border-radius:12px;
+    font-size:17px; font-weight:900;
+    padding:13px; min-height:52px;
+    box-shadow:0 4px 12px rgba(15,118,110,.3);
+  }
+  .start-btn:active{ transform:scale(.985); }
+  @media (prefers-color-scheme: dark){ .start-btn{ background:#0d9488; } }
+
+  /* running view */
+  .run-view{ display:none; flex-direction:column; gap:12px; }
+  .room.is-running .run-view, .room.is-call .run-view, .room.is-done .run-view{ display:flex; }
+  .room.is-running .idle-view, .room.is-call .idle-view, .room.is-done .idle-view{ display:none; }
+  .idle-view{ display:flex; flex-direction:column; gap:12px; }
+
+  .end-hero{
+    background:var(--teal-dark); color:#fff;
+    border-radius:14px; padding:12px 14px;
+    text-align:center;
+  }
+  @media (prefers-color-scheme: dark){ .end-hero{ background:#0b2925; } }
+  .room.is-call .end-hero{ background:#92400e; }
+  .room.is-done .end-hero{ background:#991b1b; }
+  .end-hero .eh-label{ font-size:12px; font-weight:700; letter-spacing:.1em; opacity:.8; }
+  .end-hero .eh-time{ font-size:44px; font-weight:700; line-height:1.05; letter-spacing:.02em; }
+  .end-hero .eh-sub{ font-size:12.5px; opacity:.9; font-weight:500; margin-top:2px; }
+
+  .remain-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .remain-label{ font-size:12.5px; font-weight:900; color:var(--ink2); }
+  .remain{ font-size:30px; font-weight:700; line-height:1; }
+  .room.is-call .remain{ color:var(--amber); }
+  .room.is-done .remain{ color:var(--red); }
+  .koma-now{
+    font-size:13px; font-weight:900;
+    background:var(--teal-soft); color:var(--teal);
+    border-radius:999px; padding:6px 11px; white-space:nowrap;
+  }
+  .room.is-call .koma-now{ background:rgba(245,158,11,.2); color:var(--amber); }
+  .room.is-done .koma-now{ background:rgba(239,68,68,.15); color:var(--red); }
+
+  .bar{ height:9px; border-radius:99px; background:var(--btn); overflow:hidden; }
+  .bar > i{ display:block; height:100%; background:var(--teal); border-radius:99px; transition:width .5s linear; }
+  .room.is-call .bar > i{ background:var(--amber-line); }
+  .room.is-done .bar > i{ background:var(--red-line); }
+
+  .call-banner{
+    display:none;
+    border-radius:12px; padding:11px 13px;
+    font-weight:900; font-size:15.5px; text-align:center; line-height:1.45;
+  }
+  .room.is-call .call-banner{ display:block; background:var(--amber); color:#fff; }
+  .room.is-done .call-banner{ display:block; background:var(--red); color:#fff; }
+  @media (prefers-color-scheme: dark){ .room.is-call .call-banner{ color:#1c1005; } }
+
+  .koma-list{ display:flex; flex-direction:column; gap:5px; }
+  .koma-list-title{ font-size:12px; font-weight:900; color:var(--ink2); letter-spacing:.04em; }
+  .koma-row{
+    display:flex; align-items:center; gap:8px;
+    background:var(--card2); border:1px solid var(--line);
+    border-radius:9px; padding:6px 10px;
+    font-size:13px;
+  }
+  .room.is-call .koma-row, .room.is-done .koma-row{ background:rgba(255,255,255,.45); }
+  @media (prefers-color-scheme: dark){ .room.is-call .koma-row, .room.is-done .koma-row{ background:rgba(0,0,0,.18); } }
+  .koma-row .kn{ font-weight:900; min-width:52px; }
+  .koma-row .kd{ color:var(--ink3); font-size:11.5px; font-weight:500; }
+  .koma-row .kt{ margin-left:auto; font-weight:700; font-size:15px; }
+  .koma-row.now{ border-color:var(--teal); background:var(--teal-soft); }
+  .koma-row.past{ opacity:.48; }
+  .koma-row .now-tag{ font-size:10.5px; font-weight:900; color:var(--teal); border:1.5px solid var(--teal); border-radius:99px; padding:1px 7px; }
+
+  .meta-line{ font-size:12.5px; color:var(--ink2); line-height:1.7; }
+  .meta-line b{ color:var(--ink); }
+
+  .run-actions{ display:flex; gap:7px; flex-wrap:wrap; }
+  .run-actions button{
+    flex:1 1 30%;
+    border-radius:11px; border:1.5px solid var(--line);
+    background:var(--card); color:var(--ink);
+    font-size:14px; font-weight:800; padding:9px 4px; min-height:46px;
+  }
+  .run-actions button:active{ transform:scale(.97); }
+  .run-actions .ack-btn{ background:var(--amber); border-color:var(--amber); color:#fff; display:none; }
+  .room.is-call .run-actions .ack-btn{ display:block; }
+  .room.is-done .run-actions .ack-btn{ display:block; background:var(--red); border-color:var(--red); }
+  .room.final-acked .run-actions .ack-btn{ display:none; }
+  .run-actions .reset-btn{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  @media (prefers-color-scheme: dark){ .run-actions .reset-btn{ background:#e7efea; color:#14201a; border-color:#e7efea; } }
+  .room.is-done .run-actions .reset-btn{ background:var(--red); border-color:var(--red); color:#fff; }
+  .room.final-acked .run-actions .reset-btn{ flex-basis:100%; font-size:16px; }
+  .koma-row .done-tag{ font-size:10.5px; font-weight:900; color:var(--ink2); border:1.5px solid var(--line); border-radius:99px; padding:1px 7px; white-space:nowrap; }
+  .koma-row.call-final-now{ border-color:var(--red-line); }
+
+  /* ===== Bottom guide ===== */
+  .guide{
+    margin-top:22px;
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .guide summary{
+    padding:15px 18px; font-weight:900; font-size:15.5px; cursor:pointer;
+    display:flex; align-items:center; gap:8px; list-style:none;
+  }
+  .guide summary::-webkit-details-marker{ display:none; }
+  .guide summary .chev{ margin-left:auto; color:var(--ink3); transition:transform .2s; }
+  .guide[open ] summary .chev{ transform:rotate(180deg); }
+  .guide-body{ padding:0 18px 18px; display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:640px){ .guide-body{ grid-template-columns:1fr; } }
+  .guide-body h3{ font-size:14px; font-weight:900; margin:0 0 8px; color:var(--teal); }
+  .guide-body ol{ margin:0; padding-left:20px; font-size:13.5px; line-height:1.85; color:var(--ink2); }
+  .guide-body p{ font-size:13.5px; line-height:1.8; color:var(--ink2); margin:0 0 10px; }
+  .guide-body p:last-child{ margin-bottom:0; }
+  .foot-note{ text-align:center; font-size:12px; color:var(--ink3); margin-top:16px; line-height:1.7; padding:0 16px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="clock-wrap">
+      <div>
+        <div class="clock-label">いまの時刻</div>
+        <div class="clock mono" id="clock">--:--</div>
+      </div>
+      <div class="clock-date" id="clockDate"></div>
+    </div>
+    <div class="top-stats">
+      <span class="stat">使用中 <b id="statUse">0</b> / 8部屋</span>
+      <span class="stat callstat" id="statCallWrap" style="display:none">📞 コール <b id="statCall">0</b></span>
+      <span class="stat alert" id="statDoneWrap" style="display:none">🔔 終了コール <b id="statDone">0</b></span>
+    </div>
+    <button class="sound-btn" id="soundBtn" aria-pressed="true" type="button">🔊 音あり</button>
+  </div>
+</header>
+
+<div class="alertbar" id="alertbar"><div class="alertbar-in" id="alertbarIn"></div></div>
+
+<main>
+  <div class="lead">
+    <div>
+      <h1>部屋タイマー</h1>
+      <p>1コマ110分。スタートすると、紙に書く「終了時間」が大きく出ます。コールは「終了の10／15／20分前 → その10分後 → 終了時間」の順で鳴ります。</p>
+    </div>
+    <div class="legend" aria-hidden="true">
+      <span><i class="dot free"></i>空き</span>
+      <span><i class="dot run"></i>使用中</span>
+      <span><i class="dot call"></i>コールの時間</span>
+      <span><i class="dot done"></i>終了</span>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <details class="guide">
+    <summary>📱 ホーム画面に置く方法・使い方 <span class="chev">▾</span></summary>
+    <div class="guide-body">
+      <div>
+        <h3>ホーム画面に追加（Android / Chrome）</h3>
+        <ol>
+          <li>このページをChromeで開く</li>
+          <li>右上の「︙」メニューを押す</li>
+          <li>「ホーム画面に追加」を押す</li>
+          <li>名前は「部屋タイマー」のままで「追加」</li>
+          <li>ホーム画面にアイコンができて、アプリみたいに開けます</li>
+        </ol>
+        <h3 style="margin-top:14px">ホーム画面に追加（iPhone / Safari）</h3>
+        <ol>
+          <li>このページをSafariで開く</li>
+          <li>下の共有ボタン（□に↑）を押す</li>
+          <li>「ホーム画面に追加」を押して「追加」</li>
+        </ol>
+      </div>
+      <div>
+        <h3>使い方</h3>
+        <p>① 部屋ごとに「何コマ入るか（1〜7）」と「コールは何分前か（10／15／20）」を選んで、スタートを押すだけです。</p>
+        <p>② 終了時間は一番大きく出ます。紙にはその時刻を書いてください。コマごとの終了時刻も下に全部並びます（1コマごとに110分）。</p>
+        <p>③ コールは全部で3回です（10分前を選んだときは2回目が終了時間と重なるので2回）。まず、選んだ時間（終了の10／15／20分前）になると部屋が黄色く光って音が鳴ります。これが1回目のコールです。電話したら「コールした」を押してください。</p>
+        <p>④ その10分後に、もう一度コールします（2回目）。部屋がまた黄色く光って音が鳴るので、電話したら「コールした」を押してください。例：15分前を選んだら、終了15分前 → 終了5分前 → 終了時間、の順です。</p>
+        <p>⑤ 終了時間になると赤く光って音が鳴ります。これが最後の終了コールです。電話したら「終了コールした」を押してから、「終了・空きに戻す」で次のお客さんの準備ができます。</p>
+        <p>⑥ 延びたときは「+10分」、もう1コマ入るときは「+1コマ（110分）」を押すと、終了時間もコールの時刻も自動でずれます。</p>
+        <p>※ 音を出すには、最初にどこか1回タップが必要です（スマホの決まり）。このページを開いたまま使ってください。</p>
+      </div>
+    </div>
+  </details>
+
+  <p class="foot-note">1コマ = 110分 ｜ コマ数は最大7コマ（770分 = 12時間50分）まで選べます</p>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var KOMA_MIN = 110;
+  var rooms = [];
+  var i;
+  for (i = 1; i <= 8; i++) {
+    rooms.push({
+      id: i,
+      state: "idle",           // idle | running | call | done
+      pendingKoma: 1,
+      pendingCall: 15,
+      startAt: 0,
+      endAt: 0,
+      koma: 1,
+      callBefore: 15,
+      extraMin: 0,
+      callAck: { first: false, second: false, final: false },
+      callFired: { first: false, second: false, final: false },
+      activeCallKey: null,
+      lastDoneBeep: 0
+    });
+  }
+
+  var soundOn = true;
+  var audioCtx = null;
+  function ensureAudio(){
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ audioCtx = null; }
+    }
+    if (audioCtx && audioCtx.state === "suspended") { audioCtx.resume(); }
+  }
+  function beep(freq, dur, delay, vol){
+    if (!soundOn || !audioCtx) return;
+    var t = audioCtx.currentTime + (delay || 0);
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.type = "sine"; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(vol || 0.25, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + dur + 0.05);
+  }
+  function callSound(){ ensureAudio(); beep(880, .18, 0); beep(880, .18, .28); beep(1174, .3, .56); }
+  function doneSound(){ ensureAudio(); beep(659, .22, 0); beep(659, .22, .3); beep(659, .22, .6); beep(988, .45, .9); }
+  if (navigator.vibrate) { /* available after user gesture */ }
+  function buzz(pattern){ if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e){} } }
+
+  function fmtTime(ts){
+    var d = new Date(ts);
+    var h = d.getHours(), m = d.getMinutes();
+    return (h < 10 ? "0" + h : "" + h) + ":" + (m < 10 ? "0" + m : "" + m);
+  }
+  function fmtRemain(ms){
+    if (ms < 0) ms = 0;
+    var s = Math.ceil(ms / 1000);
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+    function p(n){ return (n < 10 ? "0" + n : "" + n); }
+    if (h > 0) return h + ":" + p(m) + ":" + p(ss);
+    return p(m) + ":" + p(ss);
+  }
+  function fmtDuration(min){
+    var h = Math.floor(min / 60), m = min % 60;
+    if (h === 0) return min + "分";
+    if (m === 0) return h + "時間";
+    return h + "時間" + m + "分";
+  }
+  // コールの手順：1回目（終了の callBefore 分前）→ 2回目（その10分後）→ 終了コール（終了時間）
+  // callBefore が10分のときは2回目が終了時間と重なるので、終了コールが2回目を兼ねる（合計2回）
+  function getCallPoints(callBefore, endAt){
+    var firstAt = endAt - callBefore * 60000;
+    var pts = [{ key: "first", label: "1回目コール", shortLabel: "1回目", desc: "終了" + callBefore + "分前", at: firstAt }];
+    if (callBefore > 10) {
+      pts.push({ key: "second", label: "2回目コール", shortLabel: "2回目", desc: "1回目の10分後", at: firstAt + 10 * 60000 });
+    }
+    pts.push({ key: "final", label: "終了コール", shortLabel: "終了", desc: "終了時間", at: endAt });
+    return pts;
+  }
+  function resetCallFlags(r){
+    r.callAck = { first: false, second: false, final: false };
+    r.callFired = { first: false, second: false, final: false };
+    r.activeCallKey = null;
+  }
+
+  var grid = document.getElementById("grid");
+  var els = {};
+
+  function buildCard(r){
+    var card = document.createElement("section");
+    card.className = "room";
+    card.id = "room-" + r.id;
+    var komaBtns = "", k;
+    for (k = 1; k <= 7; k++) {
+      komaBtns += '<button type="button" data-act="koma" data-v="' + k + '"' + (k === 1 ? ' class="on"' : '') + '>' + k + '<small>' + (k * 110) + '分</small></button>';
+    }
+    card.innerHTML =
+      '<div class="room-head">' +
+        '<div class="room-no">' + r.id + '</div>' +
+        '<div><div class="room-title">' + r.id + '番の部屋</div><div class="room-status" data-f="status">空いています</div></div>' +
+        '<span class="head-badge" data-f="badge">空き</span>' +
+      '</div>' +
+
+      '<div class="idle-view">' +
+        '<div><div class="field-label">何コマ入りますか？ <span class="val" data-f="komaVal">1コマ（110分）</span></div>' +
+        '<div class="seg" data-f="komaSeg">' + komaBtns + '</div></div>' +
+        '<div><div class="field-label">コールは何分前？</div>' +
+        '<div class="seg callseg" data-f="callSeg">' +
+          '<button type="button" data-act="call" data-v="10">10分前</button>' +
+          '<button type="button" data-act="call" data-v="15" class="on">15分前</button>' +
+          '<button type="button" data-act="call" data-v="20">20分前</button>' +
+        '</div></div>' +
+        '<div class="idle-total" data-f="idleTotal"></div>' +
+        '<button type="button" class="start-btn" data-act="start">▶ スタート</button>' +
+      '</div>' +
+
+      '<div class="run-view">' +
+        '<div class="end-hero"><div class="eh-label">終了時間（紙に書く）</div><div class="eh-time mono" data-f="endTime">--:--</div><div class="eh-sub" data-f="endSub"></div></div>' +
+        '<div class="call-banner" data-f="callBanner"></div>' +
+        '<div class="remain-row"><div><div class="remain-label">残り時間</div><div class="remain mono" data-f="remain">--:--</div></div><span class="koma-now" data-f="komaNow"></span></div>' +
+        '<div class="bar"><i data-f="bar" style="width:100%"></i></div>' +
+        '<div><div class="koma-list-title">コマごとの終了時刻（1コマ110分）</div><div class="koma-list" data-f="komaList"></div></div>' +
+        '<div><div class="koma-list-title">コールの手順</div><div class="koma-list" data-f="callList"></div></div>' +
+        '<div class="meta-line" data-f="meta"></div>' +
+        '<div class="run-actions">' +
+          '<button type="button" data-act="plus10">+10分</button>' +
+          '<button type="button" data-act="plusKoma">+1コマ</button>' +
+          '<button type="button" class="ack-btn" data-act="ack" data-f="ackBtn">✓ コールした</button>' +
+          '<button type="button" class="reset-btn" data-act="reset">終了・空きに戻す</button>' +
+        '</div>' +
+      '</div>';
+    grid.appendChild(card);
+    var map = {};
+    var fields = card.querySelectorAll("[data-f]");
+    for (var j = 0; j < fields.length; j++) map[fields[j].getAttribute("data-f")] = fields[j];
+    map.card = card;
+    els[r.id] = map;
+    updateIdle(r);
+  }
+
+  function updateIdle(r){
+    var e = els[r.id];
+    e.komaVal.textContent = r.pendingKoma + "コマ（" + fmtDuration(r.pendingKoma * KOMA_MIN) + "）";
+    var now = new Date();
+    var end = new Date(now.getTime() + r.pendingKoma * KOMA_MIN * 60000);
+    var pts = getCallPoints(r.pendingCall, end.getTime());
+    var callText = pts.map(function(p, idx){ return (idx + 1) + "回目 <b>" + fmtTime(p.at) + "</b>（" + p.desc + "）"; }).join(" → ");
+    if (r.pendingCall === 10) callText += " ※2回目は終了時間と重なるため合計2回です";
+    e.idleTotal.innerHTML = "いま始めると終了は <b>" + fmtTime(end.getTime()) + "</b> です（合計 " + (r.pendingKoma * KOMA_MIN) + "分）。<br>コールの手順： " + callText + " です。";
+    var btns = e.komaSeg.querySelectorAll("button");
+    for (var a = 0; a < btns.length; a++) btns[a].classList.toggle("on", +btns[a].getAttribute("data-v") === r.pendingKoma);
+    var cbtns = e.callSeg.querySelectorAll("button");
+    for (var b = 0; b < cbtns.length; b++) cbtns[b].classList.toggle("on", +cbtns[b].getAttribute("data-v") === r.pendingCall);
+  }
+
+  function startRoom(r){
+    ensureAudio();
+    var now = Date.now();
+    r.startAt = now;
+    r.koma = r.pendingKoma;
+    r.callBefore = r.pendingCall;
+    r.extraMin = 0;
+    r.endAt = now + r.koma * KOMA_MIN * 60000;
+    resetCallFlags(r); r.lastDoneBeep = 0;
+    r.state = "running";
+    beep(740, .12, 0, .18);
+  }
+  function resetRoom(r){
+    r.state = "idle"; resetCallFlags(r);
+    updateIdle(r);
+  }
+  function extend(r, min){
+    ensureAudio();
+    r.extraMin += min;
+    r.endAt += min * 60000;
+    if (min === KOMA_MIN) r.koma += 1;
+    // 延長でコール時刻が未来に戻ったら、そのコールはもう一度鳴らせるようにする
+    var now = Date.now();
+    var pts = getCallPoints(r.callBefore, r.endAt);
+    pts.forEach(function(p){ if (p.at > now) { r.callFired[p.key] = false; r.callAck[p.key] = false; } });
+    if (r.state === "done" && r.endAt > now) { r.state = "running"; }
+    beep(740, .1, 0, .15);
+  }
+
+  grid.addEventListener("click", function(ev){
+    var btn = ev.target.closest("button");
+    if (!btn) return;
+    var card = ev.target.closest(".room");
+    var r = rooms[+card.id.replace("room-", "") - 1];
+    var act = btn.getAttribute("data-act");
+    if (act === "koma") { r.pendingKoma = +btn.getAttribute("data-v"); ensureAudio(); updateIdle(r); }
+    else if (act === "call") { r.pendingCall = +btn.getAttribute("data-v"); ensureAudio(); updateIdle(r); }
+    else if (act === "start") { startRoom(r); tickRoom(r); refreshTop(); }
+    else if (act === "reset") { resetRoom(r); tickRoom(r); refreshTop(); }
+    else if (act === "plus10") { extend(r, 10); tickRoom(r); }
+    else if (act === "plusKoma") { extend(r, KOMA_MIN); tickRoom(r); }
+    else if (act === "ack") {
+      // 確認ボタンは「いま鳴っている最新のコール」を対象にする：
+      // 期限が来て未確認のコールのうち、一番新しいものを1つ確認済みにする
+      var pts = getCallPoints(r.callBefore, r.endAt);
+      var nowAck = Date.now();
+      var target = null;
+      for (var ai = 0; ai < pts.length; ai++) {
+        if (nowAck >= pts[ai].at && !r.callAck[pts[ai].key]) { target = pts[ai]; }
+      }
+      if (target) r.callAck[target.key] = true;
+      tickRoom(r); refreshTop();
+    }
+  });
+
+  var soundBtn = document.getElementById("soundBtn");
+  soundBtn.addEventListener("click", function(){
+    soundOn = !soundOn;
+    soundBtn.setAttribute("aria-pressed", soundOn ? "true" : "false");
+    soundBtn.textContent = soundOn ? "🔊 音あり" : "🔇 音なし";
+    if (soundOn) { ensureAudio(); beep(880, .12, 0, .2); }
+  });
+  document.addEventListener("pointerdown", ensureAudio, { once: true });
+
+  function tickRoom(r){
+    var e = els[r.id], card = e.card;
+    card.classList.remove("is-running", "is-call", "is-done", "final-acked");
+    if (r.state === "idle") {
+      e.status.textContent = "空いています";
+      e.badge.textContent = "空き";
+      return;
+    }
+    var now = Date.now();
+    var totalMs = r.endAt - r.startAt;
+    var remainMs = r.endAt - now;
+    var pts = getCallPoints(r.callBefore, r.endAt);
+
+    // 各コールは独立に判定する：前のコールが未確認でも、自分の時刻が来たら必ず鳴る。
+    // 鳴らす判定はコールごとに別々に行い、未確認のまま次のコールの時刻が来ても止まらない。
+    var fireNow = null;
+    for (var fi = 0; fi < pts.length; fi++) {
+      if (now >= pts[fi].at && !r.callFired[pts[fi].key] && !r.callAck[pts[fi].key]) {
+        r.callFired[pts[fi].key] = true;
+        fireNow = pts[fi]; // 同時に複数来ていたら一番新しいものの音を鳴らす
+      }
+    }
+    if (fireNow) {
+      if (fireNow.key === "final") { r.lastDoneBeep = now; doneSound(); buzz([200, 80, 200, 80, 300]); }
+      else { callSound(); buzz([120, 60, 120]); }
+    }
+    // 終了コールの再通知：前のコールの確認状態に関係なく、終了時刻から15秒ごとに鳴らす
+    if (now >= r.endAt && !r.callAck.final && r.lastDoneBeep > 0 && now - r.lastDoneBeep > 15000) {
+      r.lastDoneBeep = now; doneSound();
+    }
+
+    // 表示・確認ボタンの対象は「いま鳴っている最新のコール」
+    // （期限が来て未確認のコールのうち一番新しいもの）
+    var active = null;
+    for (var pi = 0; pi < pts.length; pi++) {
+      if (now >= pts[pi].at && !r.callAck[pts[pi].key]) { active = pts[pi]; }
+    }
+    r.activeCallKey = active ? active.key : null;
+    var finalAcked = !!r.callAck.final;
+
+    // 状態の判定：終了時刻が来たら done（前のコールの確認状態は関係なし）、
+    // それ以外のコールが来ていたら call
+    if (remainMs <= 0) {
+      r.state = "done"; // 終了コール確認済みでも、空きに戻すまでは終了表示
+    } else if (active) {
+      r.state = "call";
+    } else {
+      r.state = "running";
+    }
+
+    card.classList.add(r.state === "running" ? "is-running" : (r.state === "call" ? "is-call" : "is-done"));
+    if (finalAcked) card.classList.add("final-acked");
+
+    // 経過から今のコマを求める（延長分は最後のコマに含む）
+    var elapsedMin = (now - r.startAt) / 60000;
+    var curKoma = Math.min(r.koma, Math.floor(elapsedMin / KOMA_MIN) + 1);
+    if (r.state === "done") curKoma = r.koma;
+
+    e.status.textContent = r.state === "done" ? (finalAcked ? "終了コール済みです" : "終了コールの時間です") : (r.state === "call" ? active.label + "の時間です" : "使用中です");
+    e.badge.textContent = r.state === "done" ? "終了コール" : (r.state === "call" ? active.shortLabel + "コール" : "使用中");
+    e.endTime.textContent = fmtTime(r.endAt);
+    e.endSub.textContent = "開始 " + fmtTime(r.startAt) + " ｜ 合計 " + fmtDuration(Math.round((r.endAt - r.startAt) / 60000));
+    e.remain.textContent = r.state === "done" ? "0:00" : fmtRemain(remainMs);
+    e.komaNow.textContent = "いま " + curKoma + "コマ目 / 全" + r.koma + "コマ";
+    var pct = totalMs > 0 ? Math.max(0, Math.min(100, remainMs / totalMs * 100)) : 0;
+    e.bar.style.width = pct + "%";
+
+    if (r.state === "call" && active) e.callBanner.innerHTML = "📞 " + active.label + "： " + r.id + "番にコールしてください<br><span style='font-size:13px;font-weight:700'>終了まで あと" + Math.max(1, Math.ceil(remainMs / 60000)) + "分です</span>";
+    else if (r.state === "done" && !finalAcked) e.callBanner.innerHTML = "📞 終了コール： " + r.id + "番にコールしてください<br><span style='font-size:13px;font-weight:700'>終了時間になりました</span>";
+    else if (r.state === "done" && finalAcked) e.callBanner.textContent = "✓ 終了コール済み ―「終了・空きに戻す」を押してください";
+    else e.callBanner.textContent = "";
+
+    if (e.ackBtn) {
+      e.ackBtn.textContent = active && active.key === "final" ? "✓ 終了コールした" : "✓ コールした";
+    }
+
+    // コマごとの終了時刻
+    var html = "";
+    for (var k = 1; k <= r.koma; k++) {
+      var kEnd = r.startAt + k * KOMA_MIN * 60000;
+      var isLast = (k === r.koma);
+      if (isLast) kEnd = r.endAt; // 延長分は最後に反映
+      var cls = "koma-row";
+      if (r.state === "done" || k < curKoma) cls += " past";
+      else if (k === curKoma) cls += " now";
+      html += '<div class="' + cls + '"><span class="kn">' + k + 'コマ目</span><span class="kd">110分</span>' +
+        (k === curKoma && r.state !== "done" ? '<span class="now-tag">いま</span>' : '') +
+        '<span class="kt mono">' + fmtTime(kEnd) + ' 終了</span></div>';
+    }
+    if (e.komaList._html !== html) { e.komaList.innerHTML = html; e.komaList._html = html; }
+
+    // コールの手順（時刻と済み／いま／まだ）
+    var chtml = "";
+    pts.forEach(function(p){
+      var acked = !!r.callAck[p.key];
+      var isActive = active && active.key === p.key;
+      var ccls = "koma-row";
+      if (acked) ccls += " past";
+      else if (isActive) ccls += (p.key === "final" ? " now call-final-now" : " now");
+      var tag = "";
+      if (acked) tag = '<span class="done-tag">✓ 済み</span>';
+      else if (isActive) tag = '<span class="now-tag">いま</span>';
+      chtml += '<div class="' + ccls + '"><span class="kn">' + p.label + '</span><span class="kd">' + p.desc + '</span>' + tag +
+        '<span class="kt mono">' + fmtTime(p.at) + '</span></div>';
+    });
+    if (e.callList._html !== chtml) { e.callList.innerHTML = chtml; e.callList._html = chtml; }
+
+    var nextPt = null;
+    for (var ni = 0; ni < pts.length; ni++) { if (now < pts[ni].at) { nextPt = pts[ni]; break; } }
+    e.meta.innerHTML = (active ? "次は <b>" + active.label + "</b> の確認待ちです" : (nextPt ? "次のコールは <b>" + fmtTime(nextPt.at) + "</b>（" + nextPt.label + "）です" : "コールは全部終わりました")) +
+      (r.extraMin > 0 ? "<br>延長 +" + r.extraMin + "分 しています" : "");
+  }
+
+  function refreshTop(){
+    var use = 0, call = 0, done = 0, callRooms = [], doneRooms = [];
+    rooms.forEach(function(r){
+      if (r.state !== "idle") use++;
+      if (r.state === "call") { call++; callRooms.push(r.id); }
+      if (r.state === "done") { done++; doneRooms.push(r.id); }
+    });
+    document.getElementById("statUse").textContent = use;
+    document.getElementById("statCallWrap").style.display = call ? "" : "none";
+    document.getElementById("statCall").textContent = call;
+    document.getElementById("statDoneWrap").style.display = done ? "" : "none";
+    document.getElementById("statDone").textContent = done;
+    var bar = document.getElementById("alertbar");
+    var barIn = document.getElementById("alertbarIn");
+    if (done) {
+      bar.className = "alertbar show done";
+      barIn.textContent = "🔔 終了コール： " + doneRooms.map(function(n){ return n + "番の部屋"; }).join("、");
+    } else if (call) {
+      bar.className = "alertbar show call";
+      barIn.textContent = "📞 コールの時間（1回目／2回目）： " + callRooms.map(function(n){ return n + "番の部屋"; }).join("、");
+    } else {
+      bar.className = "alertbar";
+      barIn.textContent = "";
+    }
+  }
+
+  var week = ["日", "月", "火", "水", "木", "金", "土"];
+  function tickClock(){
+    var d = new Date();
+    document.getElementById("clock").textContent = fmtTime(d.getTime()) + ":" + (d.getSeconds() < 10 ? "0" : "") + d.getSeconds();
+    document.getElementById("clockDate").textContent = (d.getMonth() + 1) + "月" + d.getDate() + "日（" + week[d.getDay()] + "）";
+  }
+
+  rooms.forEach(buildCard);
+  function loop(){
+    tickClock();
+    rooms.forEach(function(r){ if (r.state !== "idle") tickRoom(r); });
+    refreshTop();
+  }
+  loop();
+  setInterval(loop, 500);
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden) loop(); });
+})();
+</script>
+</body>
+</html>
